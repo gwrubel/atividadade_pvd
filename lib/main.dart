@@ -1,13 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'gerenciadores/gerenciador_produtos.dart';
 import 'gerenciadores/gerenciador_carrinho.dart';
+import 'core/theme.dart';
+import 'core/constants.dart';
 import 'telas/tela_lista_produtos.dart';
 
+/// Função principal do aplicativo PDV
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Configura orientação da tela
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
   runApp(const AplicativoPDV());
 }
 
+/// Widget principal do aplicativo PDV
 class AplicativoPDV extends StatelessWidget {
   const AplicativoPDV({super.key});
 
@@ -19,13 +32,33 @@ class AplicativoPDV extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => GerenciadorCarrinho()),
       ],
       child: MaterialApp(
-        title: 'PDV Brasil',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-          useMaterial3: true,
-        ),
+        title: AppConstants.appName,
+        theme: AppTheme.lightTheme,
         home: const TelaListaProdutos(),
         debugShowCheckedModeBanner: false,
+        builder: (context, child) {
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(
+                MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.2),
+              ),
+            ),
+            child: child!,
+          );
+        },
+        onGenerateRoute: (settings) {
+          // Configuração de rotas nomeadas (para futuras expansões)
+          switch (settings.name) {
+            case '/':
+              return MaterialPageRoute(
+                builder: (context) => const TelaListaProdutos(),
+              );
+            default:
+              return MaterialPageRoute(
+                builder: (context) => const TelaListaProdutos(),
+              );
+          }
+        },
       ),
     );
   }
