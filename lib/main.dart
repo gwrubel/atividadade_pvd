@@ -5,6 +5,7 @@ import 'gerenciadores/gerenciador_produtos.dart';
 import 'gerenciadores/gerenciador_carrinho.dart';
 import 'core/theme.dart';
 import 'core/constants.dart';
+import 'core/responsive_helper.dart';
 import 'telas/tela_lista_produtos.dart';
 
 /// Função principal do aplicativo PDV
@@ -40,7 +41,7 @@ class AplicativoPDV extends StatelessWidget {
           return MediaQuery(
             data: MediaQuery.of(context).copyWith(
               textScaler: TextScaler.linear(
-                MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.2),
+                ResponsiveHelper.getTextScaleFactor(context),
               ),
             ),
             child: child!,

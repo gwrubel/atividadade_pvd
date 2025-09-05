@@ -15,6 +15,13 @@ class AppConstants {
   static const double iconSize = 24.0;
   static const double largeIconSize = 100.0;
 
+  // Breakpoints responsivos
+  static const double mobileBreakpoint = 600.0;
+  static const double tabletBreakpoint = 900.0;
+  static const double desktopBreakpoint = 1200.0;
+  static const double smallScreenBreakpoint = 400.0;
+  static const double verySmallScreenBreakpoint = 300.0;
+
   // Durações
   static const Duration shortAnimation = Duration(milliseconds: 200);
   static const Duration mediumAnimation = Duration(milliseconds: 300);

@@ -65,15 +65,42 @@ class _TelaAdicionarProdutoState extends State<TelaAdicionarProduto> {
       padding: const EdgeInsets.all(AppConstants.defaultPadding),
       child: Form(
         key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildProductImagePreview(theme),
-            const SizedBox(height: AppConstants.largePadding),
-            _buildFormFields(theme),
-            const SizedBox(height: AppConstants.largePadding),
-            _buildActionButtons(theme),
-          ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Para telas pequenas, usar layout vertical
+            if (constraints.maxWidth < 600) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildProductImagePreview(theme),
+                  const SizedBox(height: AppConstants.largePadding),
+                  _buildFormFields(theme),
+                  const SizedBox(height: AppConstants.largePadding),
+                  _buildActionButtons(theme),
+                ],
+              );
+            }
+
+            // Para telas médias e grandes, usar layout horizontal
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 1, child: _buildProductImagePreview(theme)),
+                const SizedBox(width: AppConstants.largePadding),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildFormFields(theme),
+                      const SizedBox(height: AppConstants.largePadding),
+                      _buildActionButtons(theme),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -92,25 +119,41 @@ class _TelaAdicionarProdutoState extends State<TelaAdicionarProduto> {
               ),
             ),
             const SizedBox(height: AppConstants.defaultPadding),
-            Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                border: Border.all(color: theme.colorScheme.outline),
-                borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-                child: _urlImagemController.text.isNotEmpty
-                    ? Image.network(
-                        _urlImagemController.text,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildImagePlaceholder(theme);
-                        },
-                      )
-                    : _buildImagePlaceholder(theme),
-              ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // Tamanho responsivo da imagem
+                double imageSize = 200;
+                if (constraints.maxWidth < 400) {
+                  imageSize = 150;
+                } else if (constraints.maxWidth > 800) {
+                  imageSize = 250;
+                }
+
+                return Container(
+                  width: imageSize,
+                  height: imageSize,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: theme.colorScheme.outline),
+                    borderRadius: BorderRadius.circular(
+                      AppConstants.borderRadius,
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(
+                      AppConstants.borderRadius,
+                    ),
+                    child: _urlImagemController.text.isNotEmpty
+                        ? Image.network(
+                            _urlImagemController.text,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return _buildImagePlaceholder(theme);
+                            },
+                          )
+                        : _buildImagePlaceholder(theme),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -120,7 +163,7 @@ class _TelaAdicionarProdutoState extends State<TelaAdicionarProduto> {
 
   Widget _buildImagePlaceholder(ThemeData theme) {
     return Container(
-      color: theme.colorScheme.surfaceVariant,
+      color: theme.colorScheme.surfaceContainerHighest,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -167,6 +210,9 @@ class _TelaAdicionarProdutoState extends State<TelaAdicionarProduto> {
       ),
       maxLength: AppConstants.maxProductNameLength,
       textCapitalization: TextCapitalization.words,
+      onChanged: (value) {
+        setState(() {}); // Atualiza o contador de caracteres
+      },
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
           return AppStrings.enterProductName;
@@ -185,8 +231,6 @@ class _TelaAdicionarProdutoState extends State<TelaAdicionarProduto> {
       decoration: InputDecoration(
         labelText: AppStrings.priceLabel,
         prefixIcon: const Icon(Icons.attach_money),
-        helperText:
-            'Valor entre R\$ ${AppConstants.minPrice.toStringAsFixed(2)} e R\$ ${AppConstants.maxPrice.toStringAsFixed(2)}',
       ),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       validator: (value) {
@@ -198,10 +242,10 @@ class _TelaAdicionarProdutoState extends State<TelaAdicionarProduto> {
           return 'Formato de preço inválido';
         }
         if (preco < AppConstants.minPrice) {
-          return 'Preço deve ser pelo menos R\$ ${AppConstants.minPrice.toStringAsFixed(2)}';
+          return 'Preço deve ser pelo menos R\$ ${AppConstants.minPrice.toStringAsFixed(2).replaceAll('.', ',')}';
         }
         if (preco > AppConstants.maxPrice) {
-          return 'Preço deve ser no máximo R\$ ${AppConstants.maxPrice.toStringAsFixed(2)}';
+          return 'Preço deve ser no máximo R\$ ${AppConstants.maxPrice.toStringAsFixed(2).replaceAll('.', ',')}';
         }
         return null;
       },
@@ -221,6 +265,9 @@ class _TelaAdicionarProdutoState extends State<TelaAdicionarProduto> {
       maxLines: 3,
       maxLength: AppConstants.maxDescriptionLength,
       textCapitalization: TextCapitalization.sentences,
+      onChanged: (value) {
+        setState(() {}); // Atualiza o contador de caracteres
+      },
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
           return AppStrings.enterDescription;
@@ -239,7 +286,7 @@ class _TelaAdicionarProdutoState extends State<TelaAdicionarProduto> {
       decoration: InputDecoration(
         labelText: AppStrings.imageUrlLabel,
         prefixIcon: const Icon(Icons.image),
-        helperText: 'URL da imagem do produto',
+        helperText: 'URL da imagem do produto (opcional)',
         suffixIcon: _urlImagemController.text.isNotEmpty
             ? IconButton(
                 icon: const Icon(Icons.refresh),
@@ -255,12 +302,12 @@ class _TelaAdicionarProdutoState extends State<TelaAdicionarProduto> {
         setState(() {});
       },
       validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return AppStrings.enterImageUrl;
-        }
-        final uri = Uri.tryParse(value);
-        if (uri == null || !uri.hasAbsolutePath) {
-          return AppStrings.enterValidImageUrl;
+        // Campo opcional - só valida se preenchido
+        if (value != null && value.trim().isNotEmpty) {
+          final uri = Uri.tryParse(value);
+          if (uri == null || !uri.hasAbsolutePath) {
+            return AppStrings.enterValidImageUrl;
+          }
         }
         return null;
       },

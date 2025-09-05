@@ -46,8 +46,8 @@ class Produto {
     return nome.trim().isNotEmpty &&
         preco >= AppConstants.minPrice &&
         preco <= AppConstants.maxPrice &&
-        descricao.trim().isNotEmpty &&
-        urlImagem.trim().isNotEmpty;
+        descricao.trim().isNotEmpty;
+    // URL é opcional - não valida se vazia
   }
 
   /// Formata o preço para exibição

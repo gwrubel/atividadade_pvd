@@ -137,17 +137,73 @@ class _TelaListaProdutosState extends State<TelaListaProdutos> {
 
         return RefreshIndicator(
           onRefresh: _refreshProducts,
-          child: ListView.builder(
-            padding: const EdgeInsets.only(bottom: AppConstants.largePadding),
-            itemCount: produtos.length,
-            itemBuilder: (context, index) {
-              final produto = produtos[index];
-              return CartaoProduto(
-                produto: produto,
-                onTap: () => _showProductDetails(produto),
-              );
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Para telas muito pequenas, usar lista simples
+              if (constraints.maxWidth < 400) {
+                return _buildSimpleProductList(produtos, theme);
+              }
+
+              // Para telas médias e grandes, usar grid responsivo
+              return _buildResponsiveProductGrid(produtos, theme, constraints);
             },
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSimpleProductList(List produtos, ThemeData theme) {
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: AppConstants.largePadding),
+      itemCount: produtos.length,
+      itemBuilder: (context, index) {
+        final produto = produtos[index];
+        return Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppConstants.defaultPadding,
+            vertical: AppConstants.smallPadding / 2,
+          ),
+          child: CartaoProduto(
+            produto: produto,
+            onTap: () => _showProductDetails(produto),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildResponsiveProductGrid(
+    List produtos,
+    ThemeData theme,
+    BoxConstraints constraints,
+  ) {
+    // Calcular número de colunas baseado na largura da tela
+    int crossAxisCount = 1;
+    if (constraints.maxWidth >= 1200) {
+      crossAxisCount = 4; // Desktop grande
+    } else if (constraints.maxWidth >= 900) {
+      crossAxisCount = 3; // Desktop/Tablet grande
+    } else if (constraints.maxWidth >= 600) {
+      crossAxisCount = 2; // Tablet/Desktop pequeno
+    } else {
+      crossAxisCount = 1; // Mobile
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(AppConstants.defaultPadding),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        childAspectRatio: 0.8, // Proporção adequada para cards de produto
+        crossAxisSpacing: AppConstants.defaultPadding,
+        mainAxisSpacing: AppConstants.defaultPadding,
+      ),
+      itemCount: produtos.length,
+      itemBuilder: (context, index) {
+        final produto = produtos[index];
+        return CartaoProduto(
+          produto: produto,
+          onTap: () => _showProductDetails(produto),
         );
       },
     );
@@ -248,9 +304,78 @@ class _TelaListaProdutosState extends State<TelaListaProdutos> {
   void _showProductDetails(produto) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(produto.nome),
-        content: Column(
+      builder: (context) => LayoutBuilder(
+        builder: (context, constraints) {
+          // Para telas pequenas, usar diálogo compacto
+          if (constraints.maxWidth < 400) {
+            return _buildCompactProductDialog(produto);
+          }
+
+          // Para telas médias e grandes, usar diálogo completo
+          return _buildFullProductDialog(produto, constraints);
+        },
+      ),
+    );
+  }
+
+  Widget _buildCompactProductDialog(produto) {
+    return AlertDialog(
+      title: Text(produto.nome, style: const TextStyle(fontSize: 16)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (produto.temImagem) ...[
+            Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+                child: Image.network(
+                  produto.urlImagem,
+                  width: 150,
+                  height: 150,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(Icons.image_not_supported, size: 80);
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: AppConstants.smallPadding),
+          ],
+          Text(
+            'Preço: ${produto.precoFormatado}',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: AppConstants.smallPadding),
+          Text(
+            'Descrição:',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Text(produto.descricao, style: const TextStyle(fontSize: 12)),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            _addToCart(produto);
+          },
+          child: const Text('Adicionar'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFullProductDialog(produto, BoxConstraints constraints) {
+    return AlertDialog(
+      title: Text(produto.nome),
+      content: SizedBox(
+        width: constraints.maxWidth * 0.8,
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -278,20 +403,20 @@ class _TelaListaProdutosState extends State<TelaListaProdutos> {
             Text('Descrição: ${produto.descricao}'),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text(AppStrings.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _addToCart(produto);
-            },
-            child: const Text(AppStrings.addToCart),
-          ),
-        ],
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text(AppStrings.cancel),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            _addToCart(produto);
+          },
+          child: const Text(AppStrings.addToCart),
+        ),
+      ],
     );
   }
 

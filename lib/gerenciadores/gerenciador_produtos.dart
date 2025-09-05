@@ -63,9 +63,7 @@ class GerenciadorProdutos with ChangeNotifier {
         throw Exception(AppStrings.enterDescription);
       }
 
-      if (urlImagem.trim().isEmpty) {
-        throw Exception(AppStrings.enterImageUrl);
-      }
+      // URL é opcional - não valida se vazia
 
       final novoProduto = Produto(
         nome: nome.trim(),

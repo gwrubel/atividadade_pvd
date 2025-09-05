@@ -14,8 +14,6 @@ class TelaCarrinho extends StatefulWidget {
 }
 
 class _TelaCarrinhoState extends State<TelaCarrinho> {
-  bool _isLoading = false;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -131,27 +129,54 @@ class _TelaCarrinhoState extends State<TelaCarrinho> {
       margin: const EdgeInsets.only(bottom: AppConstants.smallPadding),
       child: Padding(
         padding: const EdgeInsets.all(AppConstants.defaultPadding),
-        child: Row(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Para telas muito pequenas, usar layout vertical
+            if (constraints.maxWidth < 350) {
+              return _buildVerticalCartItem(item, carrinho, theme);
+            }
+
+            // Para telas pequenas, usar layout compacto
+            if (constraints.maxWidth < 500) {
+              return _buildCompactCartItem(item, carrinho, theme);
+            }
+
+            // Para telas médias e grandes, usar layout original
+            return _buildHorizontalCartItem(item, carrinho, theme);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVerticalCartItem(
+    item,
+    GerenciadorCarrinho carrinho,
+    ThemeData theme,
+  ) {
+    return Column(
+      children: [
+        Row(
           children: [
             // Imagem do produto
             ClipRRect(
               borderRadius: BorderRadius.circular(AppConstants.borderRadius),
               child: Image.network(
                 item.produto.urlImagem,
-                width: 60,
-                height: 60,
+                width: 50,
+                height: 50,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    width: 60,
-                    height: 60,
+                    width: 50,
+                    height: 50,
                     color: theme.colorScheme.surfaceVariant,
-                    child: const Icon(Icons.image_not_supported),
+                    child: const Icon(Icons.image_not_supported, size: 20),
                   );
                 },
               ),
             ),
-            const SizedBox(width: AppConstants.defaultPadding),
+            const SizedBox(width: AppConstants.smallPadding),
             // Informações do produto
             Expanded(
               child: Column(
@@ -159,7 +184,7 @@ class _TelaCarrinhoState extends State<TelaCarrinho> {
                 children: [
                   Text(
                     item.produto.nome,
-                    style: theme.textTheme.titleMedium?.copyWith(
+                    style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                     maxLines: 2,
@@ -168,52 +193,245 @@ class _TelaCarrinhoState extends State<TelaCarrinho> {
                   const SizedBox(height: AppConstants.smallPadding / 2),
                   Text(
                     '${item.produto.precoFormatado} x ${item.quantidade}',
-                    style: theme.textTheme.bodyMedium?.copyWith(
+                    style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: AppConstants.smallPadding),
-                  Text(
-                    item.subtotalFormatado,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: AppColorsExtension.price,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
             ),
-            // Controles de quantidade
-            Column(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () => _incrementQuantity(item, carrinho),
-                  tooltip: 'Aumentar quantidade',
-                ),
-                Text(
-                  '${item.quantidade}',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.remove),
-                  onPressed: () => _decrementQuantity(item, carrinho),
-                  tooltip: 'Diminuir quantidade',
-                ),
-              ],
-            ),
             // Botão remover
             IconButton(
-              icon: const Icon(Icons.delete_outline),
+              icon: const Icon(Icons.delete_outline, size: 20),
               color: AppColorsExtension.error,
               onPressed: () => _removeItem(item, carrinho),
               tooltip: 'Remover item',
             ),
           ],
         ),
-      ),
+        const SizedBox(height: AppConstants.smallPadding),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              item.subtotalFormatado,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: AppColorsExtension.price,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            // Controles de quantidade compactos
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.remove, size: 18),
+                  onPressed: () => _decrementQuantity(item, carrinho),
+                  tooltip: 'Diminuir quantidade',
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                ),
+                Text(
+                  '${item.quantidade}',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add, size: 18),
+                  onPressed: () => _incrementQuantity(item, carrinho),
+                  tooltip: 'Aumentar quantidade',
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCompactCartItem(
+    item,
+    GerenciadorCarrinho carrinho,
+    ThemeData theme,
+  ) {
+    return Row(
+      children: [
+        // Imagem do produto
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+          child: Image.network(
+            item.produto.urlImagem,
+            width: 50,
+            height: 50,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: 50,
+                height: 50,
+                color: theme.colorScheme.surfaceVariant,
+                child: const Icon(Icons.image_not_supported, size: 20),
+              );
+            },
+          ),
+        ),
+        const SizedBox(width: AppConstants.smallPadding),
+        // Informações do produto
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                item.produto.nome,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: AppConstants.smallPadding / 2),
+              Text(
+                '${item.produto.precoFormatado} x ${item.quantidade}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              Text(
+                item.subtotalFormatado,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: AppColorsExtension.price,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Controles de quantidade compactos
+        Column(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.add, size: 18),
+              onPressed: () => _incrementQuantity(item, carrinho),
+              tooltip: 'Aumentar quantidade',
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            ),
+            Text(
+              '${item.quantidade}',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.remove, size: 18),
+              onPressed: () => _decrementQuantity(item, carrinho),
+              tooltip: 'Diminuir quantidade',
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            ),
+          ],
+        ),
+        // Botão remover
+        IconButton(
+          icon: const Icon(Icons.delete_outline, size: 18),
+          color: AppColorsExtension.error,
+          onPressed: () => _removeItem(item, carrinho),
+          tooltip: 'Remover item',
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHorizontalCartItem(
+    item,
+    GerenciadorCarrinho carrinho,
+    ThemeData theme,
+  ) {
+    return Row(
+      children: [
+        // Imagem do produto
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+          child: Image.network(
+            item.produto.urlImagem,
+            width: 60,
+            height: 60,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: 60,
+                height: 60,
+                color: theme.colorScheme.surfaceVariant,
+                child: const Icon(Icons.image_not_supported),
+              );
+            },
+          ),
+        ),
+        const SizedBox(width: AppConstants.defaultPadding),
+        // Informações do produto
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                item.produto.nome,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: AppConstants.smallPadding / 2),
+              Text(
+                '${item.produto.precoFormatado} x ${item.quantidade}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: AppConstants.smallPadding),
+              Text(
+                item.subtotalFormatado,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: AppColorsExtension.price,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Controles de quantidade
+        Column(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () => _incrementQuantity(item, carrinho),
+              tooltip: 'Aumentar quantidade',
+            ),
+            Text(
+              '${item.quantidade}',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.remove),
+              onPressed: () => _decrementQuantity(item, carrinho),
+              tooltip: 'Diminuir quantidade',
+            ),
+          ],
+        ),
+        // Botão remover
+        IconButton(
+          icon: const Icon(Icons.delete_outline),
+          color: AppColorsExtension.error,
+          onPressed: () => _removeItem(item, carrinho),
+          tooltip: 'Remover item',
+        ),
+      ],
     );
   }
 
@@ -236,29 +454,81 @@ class _TelaCarrinhoState extends State<TelaCarrinho> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                AppStrings.total,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
+              Flexible(
+                child: Text(
+                  AppStrings.total,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-              Text(
-                carrinho.valorTotalFormatado,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  color: AppColorsExtension.price,
-                  fontWeight: FontWeight.bold,
+              Flexible(
+                child: Text(
+                  carrinho.valorTotalFormatado,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: AppColorsExtension.price,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.end,
                 ),
               ),
             ],
           ),
           const SizedBox(height: AppConstants.defaultPadding),
-          Row(
+          _buildResponsiveButtons(carrinho, theme),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResponsiveButtons(
+    GerenciadorCarrinho carrinho,
+    ThemeData theme,
+  ) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Para telas muito pequenas, usar layout vertical
+        if (constraints.maxWidth < 300) {
+          return Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _clearCart(carrinho),
+                  icon: const Icon(Icons.clear_all),
+                  label: const Text(AppStrings.clearCart),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColorsExtension.error,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppConstants.smallPadding),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _navigateToPayment(),
+                  icon: const Icon(Icons.payment),
+                  label: const Text(AppStrings.goToPayment),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.screenColors['cart'],
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+
+        // Para telas pequenas, usar botões com texto abreviado
+        if (constraints.maxWidth < 400) {
+          return Row(
             children: [
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () => _clearCart(carrinho),
                   icon: const Icon(Icons.clear_all),
-                  label: const Text(AppStrings.clearCart),
+                  label: const Text('Limpar'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColorsExtension.error,
                     foregroundColor: Colors.white,
@@ -271,7 +541,7 @@ class _TelaCarrinhoState extends State<TelaCarrinho> {
                 child: ElevatedButton.icon(
                   onPressed: () => _navigateToPayment(),
                   icon: const Icon(Icons.payment),
-                  label: const Text(AppStrings.goToPayment),
+                  label: const Text('Pagamento'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.screenColors['cart'],
                     foregroundColor: Colors.white,
@@ -279,9 +549,39 @@ class _TelaCarrinhoState extends State<TelaCarrinho> {
                 ),
               ),
             ],
-          ),
-        ],
-      ),
+          );
+        }
+
+        // Para telas médias e grandes, usar layout original
+        return Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _clearCart(carrinho),
+                icon: const Icon(Icons.clear_all),
+                label: const Text(AppStrings.clearCart),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColorsExtension.error,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppConstants.smallPadding),
+            Expanded(
+              flex: 2,
+              child: ElevatedButton.icon(
+                onPressed: () => _navigateToPayment(),
+                icon: const Icon(Icons.payment),
+                label: const Text(AppStrings.goToPayment),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.screenColors['cart'],
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

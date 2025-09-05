@@ -30,18 +30,47 @@ class _TelaPagamentoState extends State<TelaPagamento> {
             return _buildEmptyCart(theme);
           }
 
-          return Padding(
-            padding: const EdgeInsets.all(AppConstants.defaultPadding),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildPaymentMethods(theme),
-                const Spacer(),
-                _buildCartSummary(carrinho, theme),
-                const SizedBox(height: AppConstants.defaultPadding),
-                _buildFinalizeButton(theme),
-              ],
-            ),
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              // Para telas pequenas, usar layout vertical
+              if (constraints.maxWidth < 600) {
+                return Padding(
+                  padding: const EdgeInsets.all(AppConstants.defaultPadding),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildPaymentMethods(theme),
+                      const Spacer(),
+                      _buildCartSummary(carrinho, theme),
+                      const SizedBox(height: AppConstants.defaultPadding),
+                      _buildFinalizeButton(theme),
+                    ],
+                  ),
+                );
+              }
+
+              // Para telas médias e grandes, usar layout horizontal
+              return Padding(
+                padding: const EdgeInsets.all(AppConstants.defaultPadding),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 2, child: _buildPaymentMethods(theme)),
+                    const SizedBox(width: AppConstants.defaultPadding),
+                    Expanded(
+                      flex: 1,
+                      child: Column(
+                        children: [
+                          _buildCartSummary(carrinho, theme),
+                          const SizedBox(height: AppConstants.defaultPadding),
+                          _buildFinalizeButton(theme),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           );
         },
       ),
@@ -103,8 +132,34 @@ class _TelaPagamentoState extends State<TelaPagamento> {
           ),
         ),
         const SizedBox(height: AppConstants.defaultPadding),
-        ...FormaPagamentoExtension.formasPadrao.map(
-          (forma) => _buildPaymentMethodTile(forma, theme),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // Para telas pequenas, usar lista vertical
+            if (constraints.maxWidth < 600) {
+              return Column(
+                children: FormaPagamentoExtension.formasPadrao
+                    .map((forma) => _buildPaymentMethodTile(forma, theme))
+                    .toList(),
+              );
+            }
+
+            // Para telas médias e grandes, usar grid
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 3,
+                crossAxisSpacing: AppConstants.smallPadding,
+                mainAxisSpacing: AppConstants.smallPadding,
+              ),
+              itemCount: FormaPagamentoExtension.formasPadrao.length,
+              itemBuilder: (context, index) {
+                final forma = FormaPagamentoExtension.formasPadrao[index];
+                return _buildPaymentMethodTile(forma, theme);
+              },
+            );
+          },
         ),
       ],
     );
