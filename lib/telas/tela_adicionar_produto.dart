@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../gerenciadores/gerenciador_produtos.dart';
+import '../core/constants.dart';
+import '../core/theme.dart';
 
+/// Tela para adicionar novos produtos ao sistema
 class TelaAdicionarProduto extends StatefulWidget {
   const TelaAdicionarProduto({super.key});
 
@@ -16,6 +19,8 @@ class _TelaAdicionarProdutoState extends State<TelaAdicionarProduto> {
   final _descricaoController = TextEditingController();
   final _urlImagemController = TextEditingController();
 
+  bool _isLoading = false;
+
   @override
   void dispose() {
     _nomeController.dispose();
@@ -25,125 +30,376 @@ class _TelaAdicionarProdutoState extends State<TelaAdicionarProduto> {
     super.dispose();
   }
 
-  void _salvarProduto() {
-    if (_formKey.currentState!.validate()) {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(appBar: _buildAppBar(theme), body: _buildBody(theme));
+  }
+
+  PreferredSizeWidget _buildAppBar(ThemeData theme) {
+    return AppBar(
+      title: Text(AppStrings.addProductTitle),
+      backgroundColor: AppTheme.screenColors['addProduct'],
+      foregroundColor: Colors.white,
+      elevation: 2,
+      actions: [
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildBody(ThemeData theme) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppConstants.defaultPadding),
+      child: Form(
+        key: _formKey,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Para telas pequenas, usar layout vertical
+            if (constraints.maxWidth < 600) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildProductImagePreview(theme),
+                  const SizedBox(height: AppConstants.largePadding),
+                  _buildFormFields(theme),
+                  const SizedBox(height: AppConstants.largePadding),
+                  _buildActionButtons(theme),
+                ],
+              );
+            }
+
+            // Para telas médias e grandes, usar layout horizontal
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 1, child: _buildProductImagePreview(theme)),
+                const SizedBox(width: AppConstants.largePadding),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildFormFields(theme),
+                      const SizedBox(height: AppConstants.largePadding),
+                      _buildActionButtons(theme),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductImagePreview(ThemeData theme) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppConstants.defaultPadding),
+        child: Column(
+          children: [
+            Text(
+              'Preview da Imagem',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: AppConstants.defaultPadding),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // Tamanho responsivo da imagem
+                double imageSize = 200;
+                if (constraints.maxWidth < 400) {
+                  imageSize = 150;
+                } else if (constraints.maxWidth > 800) {
+                  imageSize = 250;
+                }
+
+                return Container(
+                  width: imageSize,
+                  height: imageSize,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: theme.colorScheme.outline),
+                    borderRadius: BorderRadius.circular(
+                      AppConstants.borderRadius,
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(
+                      AppConstants.borderRadius,
+                    ),
+                    child: _urlImagemController.text.isNotEmpty
+                        ? Image.network(
+                            _urlImagemController.text,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return _buildImagePlaceholder(theme);
+                            },
+                          )
+                        : _buildImagePlaceholder(theme),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImagePlaceholder(ThemeData theme) {
+    return Container(
+      color: theme.colorScheme.surfaceContainerHighest,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.image_outlined,
+            size: 50,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: AppConstants.smallPadding),
+          Text(
+            'Nenhuma imagem',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormFields(ThemeData theme) {
+    return Column(
+      children: [
+        _buildNameField(theme),
+        const SizedBox(height: AppConstants.defaultPadding),
+        _buildPriceField(theme),
+        const SizedBox(height: AppConstants.defaultPadding),
+        _buildDescriptionField(theme),
+        const SizedBox(height: AppConstants.defaultPadding),
+        _buildImageUrlField(theme),
+      ],
+    );
+  }
+
+  Widget _buildNameField(ThemeData theme) {
+    return TextFormField(
+      controller: _nomeController,
+      decoration: InputDecoration(
+        labelText: AppStrings.productNameLabel,
+        prefixIcon: const Icon(Icons.shopping_bag),
+        helperText: 'Máximo ${AppConstants.maxProductNameLength} caracteres',
+        counterText:
+            '${_nomeController.text.length}/${AppConstants.maxProductNameLength}',
+      ),
+      maxLength: AppConstants.maxProductNameLength,
+      textCapitalization: TextCapitalization.words,
+      onChanged: (value) {
+        setState(() {}); // Atualiza o contador de caracteres
+      },
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return AppStrings.enterProductName;
+        }
+        if (value.trim().length < 2) {
+          return 'Nome deve ter pelo menos 2 caracteres';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildPriceField(ThemeData theme) {
+    return TextFormField(
+      controller: _precoController,
+      decoration: InputDecoration(
+        labelText: AppStrings.priceLabel,
+        prefixIcon: const Icon(Icons.attach_money),
+      ),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return AppStrings.enterPrice;
+        }
+        final preco = double.tryParse(value.replaceAll(',', '.'));
+        if (preco == null) {
+          return 'Formato de preço inválido';
+        }
+        if (preco < AppConstants.minPrice) {
+          return 'Preço deve ser pelo menos R\$ ${AppConstants.minPrice.toStringAsFixed(2).replaceAll('.', ',')}';
+        }
+        if (preco > AppConstants.maxPrice) {
+          return 'Preço deve ser no máximo R\$ ${AppConstants.maxPrice.toStringAsFixed(2).replaceAll('.', ',')}';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildDescriptionField(ThemeData theme) {
+    return TextFormField(
+      controller: _descricaoController,
+      decoration: InputDecoration(
+        labelText: AppStrings.descriptionLabel,
+        prefixIcon: const Icon(Icons.description),
+        helperText: 'Máximo ${AppConstants.maxDescriptionLength} caracteres',
+        counterText:
+            '${_descricaoController.text.length}/${AppConstants.maxDescriptionLength}',
+      ),
+      maxLines: 3,
+      maxLength: AppConstants.maxDescriptionLength,
+      textCapitalization: TextCapitalization.sentences,
+      onChanged: (value) {
+        setState(() {}); // Atualiza o contador de caracteres
+      },
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return AppStrings.enterDescription;
+        }
+        if (value.trim().length < 10) {
+          return 'Descrição deve ter pelo menos 10 caracteres';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildImageUrlField(ThemeData theme) {
+    return TextFormField(
+      controller: _urlImagemController,
+      decoration: InputDecoration(
+        labelText: AppStrings.imageUrlLabel,
+        prefixIcon: const Icon(Icons.image),
+        helperText: 'URL da imagem do produto (opcional)',
+        suffixIcon: _urlImagemController.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: () {
+                  setState(() {});
+                },
+                tooltip: 'Atualizar preview',
+              )
+            : null,
+      ),
+      keyboardType: TextInputType.url,
+      onChanged: (value) {
+        setState(() {});
+      },
+      validator: (value) {
+        // Campo opcional - só valida se preenchido
+        if (value != null && value.trim().isNotEmpty) {
+          final uri = Uri.tryParse(value);
+          if (uri == null || !uri.hasAbsolutePath) {
+            return AppStrings.enterValidImageUrl;
+          }
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildActionButtons(ThemeData theme) {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+            child: const Text(AppStrings.cancel),
+          ),
+        ),
+        const SizedBox(width: AppConstants.defaultPadding),
+        Expanded(
+          flex: 2,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _salvarProduto,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.screenColors['addProduct'],
+              foregroundColor: Colors.white,
+            ),
+            child: _isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Text(AppStrings.saveProduct),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _salvarProduto() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
       final nome = _nomeController.text.trim();
       final preco = double.parse(_precoController.text.replaceAll(',', '.'));
       final descricao = _descricaoController.text.trim();
       final urlImagem = _urlImagemController.text.trim();
 
-      Provider.of<GerenciadorProdutos>(context, listen: false)
-          .adicionarProduto(nome, preco, descricao, urlImagem);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Produto salvo com sucesso!'),
-          backgroundColor: Colors.green,
-        ),
+      await Provider.of<GerenciadorProdutos>(
+        context,
+        listen: false,
+      ).adicionarProduto(
+        nome: nome,
+        preco: preco,
+        descricao: descricao,
+        urlImagem: urlImagem,
       );
-      
-      Navigator.pop(context);
-    }
-  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Adicionar Produto'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _nomeController,
-                decoration: const InputDecoration(
-                  labelText: 'Nome do Produto',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.shopping_bag),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Por favor, insira o nome do produto';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _precoController,
-                decoration: const InputDecoration(
-                  labelText: 'Preço',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.attach_money),
-                ),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Por favor, insira o preço';
-                  }
-                  final preco = double.tryParse(value.replaceAll(',', '.'));
-                  if (preco == null || preco <= 0) {
-                    return 'Por favor, insira um preço válido';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descricaoController,
-                decoration: const InputDecoration(
-                  labelText: 'Descrição',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.description),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Por favor, insira a URL da imagem';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _urlImagemController,
-                decoration: const InputDecoration(
-                  labelText: 'URL da Imagem',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.image),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Por favor, insira a URL da imagem';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _salvarProduto,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text(
-                    'Salvar Produto',
-                    style: TextStyle(fontSize: 18),
-                  ),
-                ),
-              ),
-            ],
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppStrings.productSavedSuccessfully),
+            backgroundColor: AppColorsExtension.success,
+            duration: AppConstants.snackBarDuration,
           ),
-        ),
-      ),
-    );
+        );
+
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao salvar produto: $e'),
+            backgroundColor: AppColorsExtension.error,
+            duration: AppConstants.snackBarDuration,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 }
