@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../modelos/produto.dart';
 import '../modelos/item_carrinho.dart';
-import '../core/constants.dart';
 
 /// Gerenciador de estado para carrinho de compras do sistema PDV
 class GerenciadorCarrinho with ChangeNotifier {

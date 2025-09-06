@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
-import '../core/theme.dart';
 
 /// Componente para exibição de imagens de produtos com fallbacks
 class ImagemProduto extends StatelessWidget {
